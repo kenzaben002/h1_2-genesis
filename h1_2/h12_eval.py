@@ -41,17 +41,24 @@ def main():
         domain_rand_cfg = domain_rand_cfg,
         show_viewer=True,
     )
-
+    ####
+    env.start_evaluation_logging(f"eval_data_{args.ckpt}.csv")
+    ####
     runner = OnPolicyRunner(env, train_cfg, log_dir, device=gs.device)
     resume_path = os.path.join(log_dir, f"model_{args.ckpt}.pt")
     runner.load(resume_path)
     policy = runner.get_inference_policy(device=gs.device)
 
     obs, _ = env.reset()
-    with torch.no_grad():
-        while True:
-            actions = policy(obs)
-            obs, rews, dones, infos = env.step(actions)
+    try:
+        with torch.no_grad():
+            while True:
+                actions = policy(obs)
+                obs, rews, dones, infos = env.step(actions)
+    finally:
+        # Assurez-vous que le fichier est fermé même en cas d'erreur
+        env.stop_evaluation_logging()
+    
 
 
 if __name__ == "__main__":

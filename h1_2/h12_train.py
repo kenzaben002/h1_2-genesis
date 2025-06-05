@@ -69,7 +69,7 @@ def get_train_cfg(exp_name, max_iterations):
 
 def get_cfgs():
     env_cfg = {
-        "num_actions": 21,
+        "num_actions": 12,
         # joint/link names / tt changement done une erreur de log
         "default_joint_angles": {  # [rad]
             'left_hip_yaw_joint': 0.0,
@@ -84,15 +84,15 @@ def get_cfgs():
             'right_knee_joint': 0.36,
             'right_ankle_pitch_joint': -0.2,
             'right_ankle_roll_joint': 0.1,
-            'torso_joint': 0,
-            'left_shoulder_pitch_joint': 0.4,
-            'left_shoulder_roll_joint': 0,
-            'left_shoulder_yaw_joint': 0,
-            'left_elbow_pitch_joint': 0.3,
-            'right_shoulder_pitch_joint': 0.4,
-            'right_shoulder_roll_joint': 0,
-            'right_shoulder_yaw_joint': 0,
-            'right_elbow_pitch_joint': 0.3,
+            #'torso_joint': 0,
+            #'left_shoulder_pitch_joint': 0.4,
+            #'left_shoulder_roll_joint': 0,
+            #'left_shoulder_yaw_joint': 0,
+            #'left_elbow_pitch_joint': 0.3,
+            #'right_shoulder_pitch_joint': 0.4,
+            #'right_shoulder_roll_joint': 0,
+            #'right_shoulder_yaw_joint': 0,
+            #'right_elbow_pitch_joint': 0.3,
        
 
 
@@ -112,15 +112,15 @@ def get_cfgs():
             'right_knee_joint',
             'right_ankle_pitch_joint',
             'right_ankle_roll_joint',
-            'torso_joint',
-            'left_shoulder_pitch_joint',
-            'left_shoulder_roll_joint',
-            'left_shoulder_yaw_joint',
-            'left_elbow_pitch_joint',
-            'right_shoulder_pitch_joint',
-            'right_shoulder_roll_joint',
-            'right_shoulder_yaw_joint',
-            'right_elbow_pitch_joint',
+            #'torso_joint',
+            #'left_shoulder_pitch_joint',
+            #'left_shoulder_roll_joint',
+            #'left_shoulder_yaw_joint',
+            #'left_elbow_pitch_joint',
+            #'right_shoulder_pitch_joint',
+            #'right_shoulder_roll_joint',
+            #'right_shoulder_yaw_joint',
+            #'right_elbow_pitch_joint',
 	
         ],
         # PD
@@ -139,18 +139,18 @@ def get_cfgs():
         	'right_ankle_pitch_joint': 40.,
         	'right_ankle_roll_joint': 40.,
 
-       		'torso_joint': 100.,
+       		#'torso_joint': 100.,
 
-        	'left_shoulder_pitch_joint': 1000.,
-        	'left_shoulder_roll_joint': 800.,
-        	'left_shoulder_yaw_joint': 600.,
-        	'left_elbow_pitch_joint': 1200.,
+        	#'left_shoulder_pitch_joint': 100.,
+        	#'left_shoulder_roll_joint': 80.,
+        	#'left_shoulder_yaw_joint': 60.,
+        	#'left_elbow_pitch_joint': 120.,
 
-        	'right_shoulder_pitch_joint': 1000.,
-        	'right_shoulder_roll_joint': 800.,
-        	'right_shoulder_yaw_joint': 600.,
-        	'right_elbow_pitch_joint': 1200.,},
-        
+        	#'right_shoulder_pitch_joint': 100.,
+        	#'right_shoulder_roll_joint': 80.,
+        	#'right_shoulder_yaw_joint': 60.,
+        	#'right_elbow_pitch_joint': 120.,},
+         },
         "joint_kds": {
 	    	'left_hip_yaw_joint': 2.5,
         	'left_hip_roll_joint': 2.5,
@@ -166,17 +166,17 @@ def get_cfgs():
         	'right_ankle_pitch_joint': 2.0,
         	'right_ankle_roll_joint': 2.0,
 
-        	'torso_joint': 10.,
+        	#'torso_joint': 10.,
 
-        	'left_shoulder_pitch_joint': 20,
-        	'left_shoulder_roll_joint': 50,
-        	'left_shoulder_yaw_joint': 100,
-        	'left_elbow_pitch_joint': 30,
+        	#'left_shoulder_pitch_joint': 20,
+        	#'left_shoulder_roll_joint': 50,
+        	#'left_shoulder_yaw_joint': 100,
+        	#'left_elbow_pitch_joint': 30,
 
-        	'right_shoulder_pitch_joint': 20,
-        	'right_shoulder_roll_joint': 50,
-        	'right_shoulder_yaw_joint': 100,
-        	'right_elbow_pitch_joint': 30,
+        	#'right_shoulder_pitch_joint': 20,
+        	#'right_shoulder_roll_joint': 50,
+        	#'right_shoulder_yaw_joint': 100,
+        	#'right_elbow_pitch_joint': 30,
    		 },
         # termination
         "termination_if_roll_greater_than": 20,  # degree
@@ -194,8 +194,8 @@ def get_cfgs():
 	    "clip_observations": 10.0,
     }
     obs_cfg = {
-	   #3+3+3+21+21+21 
-        "num_obs": 74,
+	   #3+3+3+12+12+12+2
+        "num_obs":47,
         "obs_scales": {
             "lin_vel": 2.0,
             "ang_vel": 0.25,
@@ -245,7 +245,7 @@ def get_cfgs():
         'push_robots': True,
         'push_interval_s': 3.5, # seconds
         'max_push_vel_xy': 1.0, # meters/seconds
-        'max_push_vel_rp': 500.0, # degrees/seconds
+        'max_push_vel_rp': 900.0, # degrees/seconds
     }
     return env_cfg, obs_cfg, reward_cfg, command_cfg, domain_rand_cfg
 

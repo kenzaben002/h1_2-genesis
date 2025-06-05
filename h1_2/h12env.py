@@ -75,7 +75,7 @@ class H1_2Env:
         self.inv_base_init_quat = inv_quat(self.base_init_quat)
         self.robot = self.scene.add_entity(
             gs.morphs.URDF(
-                file='/home/kbenhammaa/gen/RL/unitree_rl_gym/resources/robots/h1_2/h1_2.urdf',  
+                file='/home/kbenhammaa/h1_2-genesis/h1_2/h1_2_12dof.urdf',  
                 pos=self.base_init_pos.cpu().numpy(),
                 quat=self.base_init_quat.cpu().numpy(),
             ),
@@ -180,7 +180,80 @@ class H1_2Env:
             link = self.robot.get_link(name)
             link_id_local = link.idx_local
             self.termination_contact_indices.append(link_id_local)
+    #####################################"retour des cmd
+        self.eval_logger = None
+        self.eval_data = []
+        self.log_columns = [
+            'step',
+            'cmd_lin_vel_x', 'cmd_lin_vel_y', 'cmd_ang_vel_z',
+            'base_pos_x', 'base_pos_y', 'base_pos_z',
+            'base_ori_w', 'base_ori_x', 'base_ori_y', 'base_ori_z',
+            'base_lin_vel_x', 'base_lin_vel_y', 'base_lin_vel_z',
+            'base_ang_vel_x', 'base_ang_vel_y', 'base_ang_vel_z'
+        ]
+        
+        # Ajoutez les noms de joints dynamiquement
+        joint_names = self.env_cfg["joint_names"]
+        for name in joint_names:
+            self.log_columns.extend([
+                f'{name}_pos',
+                f'{name}_vel',
+                f'{name}_eff'
+            ])
+    
+    def start_evaluation_logging(self, log_path="eval_log.csv"):
+        """À appeler avant de commencer l'évaluation"""
+        self.eval_logger = open(log_path, "w")
+        self.eval_logger.write(",".join(self.log_columns) + "\n")
+        
+    def stop_evaluation_logging(self):
+        """À appeler après l'évaluation"""
+        if self.eval_logger:
+            self.eval_logger.close()
+        self.eval_logger = None
+    
+    def _log_evaluation_data(self):
+        """Enregistre les données de l'étape actuelle"""
+        if not self.eval_logger:
+            return
+            
+        # Données de base
+        log_data = {
+            'step': self.episode_length_buf[0].item(),
+            'cmd_lin_vel_x': self.commands[0, 0].item(),
+            'cmd_lin_vel_y': self.commands[0, 1].item(),
+            'cmd_ang_vel_z': self.commands[0, 2].item(),
+            'base_pos_x': self.base_pos[0, 0].item(),
+            'base_pos_y': self.base_pos[0, 1].item(),
+            'base_pos_z': self.base_pos[0, 2].item(),
+            'base_ori_w': self.base_quat[0, 0].item(),
+            'base_ori_x': self.base_quat[0, 1].item(),
+            'base_ori_y': self.base_quat[0, 2].item(),
+            'base_ori_z': self.base_quat[0, 3].item(),
+            'base_lin_vel_x': self.base_lin_vel[0, 0].item(),
+            'base_lin_vel_y': self.base_lin_vel[0, 1].item(),
+            'base_lin_vel_z': self.base_lin_vel[0, 2].item(),
+            'base_ang_vel_x': self.base_ang_vel[0, 0].item(),
+            'base_ang_vel_y': self.base_ang_vel[0, 1].item(),
+            'base_ang_vel_z': self.base_ang_vel[0, 2].item()
+        }
+        
+        # Données des joints
+        joint_pos = self.dof_pos[0].cpu().numpy()
+        joint_vel = self.dof_vel[0].cpu().numpy()
+        joint_eff = self.robot.get_dofs_force()[0].cpu().numpy()
+        
+        for i, name in enumerate(self.env_cfg["joint_names"]):
+            log_data[f'{name}_pos'] = joint_pos[i]
+            log_data[f'{name}_vel'] = joint_vel[i]
+            log_data[f'{name}_eff'] = joint_eff[i]
+        
+        # Écriture dans le fichier
+        line = ",".join([str(log_data[col]) for col in self.log_columns])
+        self.eval_logger.write(line + "\n")
+        self.eval_logger.flush()
 
+        ####################################################################""
     def _resample_commands(self, envs_idx):
         #print("resample")
         self.commands[envs_idx, 0] = gs_rand_float(*self.command_cfg["lin_vel_x_range"], (len(envs_idx),), gs.device)
@@ -245,7 +318,7 @@ class H1_2Env:
             self.push_robots()
 
 
-         #modified physiques 
+        #modified physiques 
         self.contact_forces = self.robot.get_links_net_contact_force()
         self.left_foot_link = self.robot.get_link(name='left_ankle_roll_link')
         self.right_foot_link = self.robot.get_link(
@@ -308,6 +381,10 @@ class H1_2Env:
         # Debug print in step():
         #print(f"Contact forces: {self.contact_forces[0, self.feet_indices, 2]}")
         #print(f"Velocity: {self.base_lin_vel[:,0].mean().item():.2f}")
+        #####################"
+        if hasattr(self, 'eval_logger') and self.eval_logger:
+            self._log_evaluation_data()
+        #############
         return self.obs_buf, self.rew_buf, self.reset_buf, self.extras
 
 
@@ -368,7 +445,11 @@ class H1_2Env:
     def reset_idx(self, envs_idx):
         if len(envs_idx) == 0:
             return
-
+            #####
+        if hasattr(self, 'log_file'):
+            self.log_file.close()
+        self.log_file = open("joint_states_log.csv", "a") 
+        #####""
         # reset dofs
         self.dof_pos[envs_idx] = self.default_dof_pos
         self.dof_vel[envs_idx] = 0.0
