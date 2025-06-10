@@ -1,16 +1,20 @@
 # h1_2-genesis
+
 Objective of this repo is exploring and testing GENSIS IA to gain a deeper understanding of its capabilities in robotics simulation and reinforcement learning using h1_2 unitree robot 
 
 1. Installation and Setup
    
 Tested Platforms:
   -Linux (Ubuntu 24.04.2 LTS): Fully functional
+  
   -Windows: Works, but might face some rendering issues (OpenGL) → Linux is strongly recommended
   
 Requirements:
   -Install torch______with #pip install torch
       (Make sure to install the version of Python and torch suitable for your system)
+      
   -Install Genesis____with #pip install genesis-world
+  
   -pip install open3d  # For morph operations
    ###For better understanding, please refer to the official documentation:
         https://genesis-world.readthedocs.io/en/latest/user_guide
@@ -18,9 +22,12 @@ Requirements:
 Notes:
   -Genesis runs more efficiently with a GPU.
     Check your NVIDIA drivers with the command: nvidia-smi
+    
   -If the driver is not found, install it:
     sudo apt install nvidia-driver-<version>
+    
   -Verify your CUDA version.
+  
   -Verify your GPU architecture:
     It must have Compute Capability (C.C) greater than or equal to 3.7.
       #####Some architectures are no longer supported by PyTorch.
