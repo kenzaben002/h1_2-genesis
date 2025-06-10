@@ -29,14 +29,21 @@ Notes:
 2.My system environment
 
   **Python** : 3.12.3  
-  **OS** : Ubuntu 24.04.2 LTS   
+  
+  **OS** : Ubuntu 24.04.2 LTS 
+  
   **CPU** : Intel(R) Core(TM) i9-10900K CPU @ 3.70 GHz 
+  
   **GPU** : NVIDIA GeForce RTX 3060  
+  
   **Driver** : 550.120  
+  
   **CUDA** : 12.4  
+  
   **PyTorch** : 2.7.0+cu118  
 
 #####################################
+
 URDF/MJCF files of  Unitree H1_2 qre from this repo :
 https://github.com/unitreerobotics/unitree_rl_gym/tree/main/resources/robots/h1_2
 
