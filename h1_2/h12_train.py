@@ -83,7 +83,7 @@ def get_cfgs():
             'right_hip_pitch_joint': -0.16,
             'right_knee_joint': 0.36,
             'right_ankle_pitch_joint': -0.2,
-            'right_ankle_roll_joint': 0.1,
+            'right_ankle_roll_joint': 0.0,
             #'torso_joint': 0,
             #'left_shoulder_pitch_joint': 0.4,
             #'left_shoulder_roll_joint': 0,
@@ -188,7 +188,7 @@ def get_cfgs():
         "base_init_quat": [1.0, 0.0, 0.0, 0.0],
         "episode_length_s": 20.0,
         "resampling_time_s": 4.0,
-        "action_scale": 0.2,
+        "action_scale": 0.25,
         "simulate_action_latency": True,
         "clip_actions": 100.0,
 	    "clip_observations": 10.0,
@@ -225,6 +225,7 @@ def get_cfgs():
             "orientation" :-1,
             "ang_vel_xy": -0.05,
             "dof_vel": -0.001,
+	    "arm_movement":0.1,
 
         },
     }
@@ -235,7 +236,7 @@ def get_cfgs():
         "ang_vel_range": [-0.5,0.5],
     }
 
-    #return env_cfg, obs_cfg, reward_cfg, command_cfg
+    
 
     domain_rand_cfg = {
         'randomize_friction': True,
@@ -243,17 +244,57 @@ def get_cfgs():
         'randomize_mass': False,
         'added_mass_range': [-1.0, 1.0],
         'push_robots': True,
-        'push_interval_s': 3.5, # seconds
+        'push_interval_s': 15, # seconds
         'max_push_vel_xy': 1.0, # meters/seconds
-        'max_push_vel_rp': 900.0, # degrees/seconds
+        'max_push_vel_rp': 200.0, # degrees/seconds
     }
     return env_cfg, obs_cfg, reward_cfg, command_cfg, domain_rand_cfg
+
+def export_policy_jit(runner, path):
+    """Export policy as TorchScript model"""
+    policy = runner.alg.actor_critic
+    
+    #input pour le tracing
+    dummy_input = torch.randn(1, runner.env.num_obs).to(runner.device)
+    
+    # Mode trace pour meilleure compatibilité
+    traced_script = torch.jit.trace(policy.actor, dummy_input)
+    traced_script.save(path)
+    print(f"JIT policy exported to {path}")
+
+
+def export_policy_onnx(runner, path, input_shape=(1, 47), opset_version=12):
+    """Export policy as ONNX model"""
+    import torch
+    from rsl_rl.modules import ActorCritic
+    
+    policy = runner.alg.actor_critic
+    dummy_input = torch.randn(input_shape).to(runner.device)
+    
+    # Export
+    torch.onnx.export(
+        policy.actor,
+        dummy_input,
+        path,
+        export_params=True,
+        opset_version=opset_version,
+        do_constant_folding=True,
+        input_names=['observations'],
+        output_names=['actions'],
+        dynamic_axes={
+            'observations': {0: 'batch_size'},
+            'actions': {0: 'batch_size'}
+        }
+    )
+    print(f"ONNX policy exported to {path}")
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--exp_name", type=str, default="h1_2-walking")
     parser.add_argument("-B", "--num_envs", type=int, default=4096)
     parser.add_argument("--max_iterations", type=int, default=101)
+    parser.add_argument("--export_jit", action="store_true", help="Export TorchScript model")
+    parser.add_argument("--export_onnx", action="store_true", help="Export ONNX model")
     args = parser.parse_args()
 
     gs.init( logging_level="warning")
@@ -279,10 +320,19 @@ def main():
 
     runner.learn(num_learning_iterations=args.max_iterations, init_at_random_ep_len=True)
 
+    if args.export_jit:
+        jit_path = os.path.join(log_dir, "policy.jit")
+        export_policy_jit(runner, jit_path)
+
+    if args.export_onnx:
+        onnx_path = os.path.join(log_dir, "policy.onnx")
+        export_policy_onnx(runner, onnx_path)
+
+
 if __name__ == "__main__":
     main()
 
 """
 # training
-python h12_train.py -e h1_2-walking -B 4096 --max_iterations 101
+python h12_train.py -e h1_2-walking -B 4096 --max_iterations 101 --- export_jit ---export_onnx
 """
