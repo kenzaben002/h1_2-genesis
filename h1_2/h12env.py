@@ -30,14 +30,8 @@ class H1_2Env:
 
         self.obs_scales = obs_cfg["obs_scales"]
         self.reward_scales = reward_cfg["reward_scales"]
-        #ajout de links des pieds 
-        #self.feet_names = ["left_ankle_roll_link", "right_ankle_roll_link"]
-        #self.feet_num = len(self.feet_names)
-        #self.simulation_dt=env_cfg["simulation_dt"]
-        #self.control_dt=env_cfg["control_dt"]
-        #self.control_decimation=int(self.control_dt/self.simulation_dt)
     
-        # creation dù scene
+        # creation du scene
         self.scene = gs.Scene(
             sim_options=gs.options.SimOptions(dt=self.dt, substeps=2),
             viewer_options=gs.options.ViewerOptions(
@@ -84,8 +78,6 @@ class H1_2Env:
         # building the scene 
         print("building the scene ")
         self.scene.build(n_envs=num_envs)
-        #cam.start_recording()
-        # names to indices
         self.motors_dof_idx = [self.robot.get_joint(name).dof_start for name in self.env_cfg["joint_names"]]
         
 
@@ -100,9 +92,6 @@ class H1_2Env:
         self.robot.set_dofs_kp(joint_kps, self.motors_dof_idx)
         self.robot.set_dofs_kv(joint_kds, self.motors_dof_idx)
 
-        #self.robot.set_dofs_kp([self.env_cfg["kp"]] * self.num_actions, self.motors_dof_idx)
-        #self.robot.set_dofs_kv([self.env_cfg["kd"]] * self.num_actions, self.motors_dof_idx)
-        # les memes gains appliquer a tt les joints 
 
         # prepare reward functions and multiply reward scales by dt
         print("Preparing reward functions...")
@@ -146,27 +135,7 @@ class H1_2Env:
         self.extras["observations"] = dict()
         
         ###
-        self.contact_forces = self.robot.get_links_net_contact_force()
-        self.left_foot_link = self.robot.get_link(name='left_ankle_roll_link')
-        self.right_foot_link = self.robot.get_link(
-            name='right_ankle_roll_link')
-        self.left_foot_id_local = self.left_foot_link.idx_local
-        self.right_foot_id_local = self.right_foot_link.idx_local
-        self.feet_indices = [self.left_foot_id_local,
-                             self.right_foot_id_local]
-        self.feet_num = len(self.feet_indices)
-        self.links_vel = self.robot.get_links_vel()
-        self.feet_vel = self.links_vel[:, self.feet_indices, :]
         self.links_pos = self.robot.get_links_pos()
-        self.feet_pos = self.links_pos[:, self.feet_indices, :]
-        period = 0.8
-        offset = 0.5
-        self.phase = (self.episode_length_buf * self.dt) % period / period
-        self.phase_left = self.phase
-        self.phase_right = (self.phase + offset) % 1
-        self.leg_phase = torch.cat([self.phase_left.unsqueeze(1), self.phase_right.unsqueeze(1)], dim=-1)
-        self.sin_phase = torch.sin(2 * np.pi * self.phase ).unsqueeze(1)
-        self.cos_phase = torch.cos(2 * np.pi * self.phase ).unsqueeze(1)
         self.pelvis_link = self.robot.get_link(name='pelvis')
         self.pelvis_mass = self.pelvis_link.get_mass()
         self.pelvis_id_local = self.pelvis_link.idx_local
@@ -180,7 +149,7 @@ class H1_2Env:
             link = self.robot.get_link(name)
             link_id_local = link.idx_local
             self.termination_contact_indices.append(link_id_local)
-    #####################################"retour des cmd
+
         self.eval_logger = None
         self.eval_data = []
         self.log_columns = [
@@ -289,7 +258,7 @@ class H1_2Env:
         self.dof_vel[:] = self.robot.get_dofs_velocity(self.motors_dof_idx)
         
       
-        # resample commands / changement des cmd pour certains env
+        # resample commands 
         envs_idx = (
             (self.episode_length_buf % int(self.env_cfg["resampling_time_s"] / self.dt) == 0)
             .nonzero(as_tuple=False)
@@ -495,30 +464,30 @@ class H1_2Env:
 
     # ------------ reward functions----------------
     def _reward_tracking_lin_vel(self):
-        # Tracking of linear velocity commands (xy axes)
+        """ Tracking of linear velocity commands (xy axes)"""
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
         return torch.exp(-lin_vel_error / self.reward_cfg["tracking_sigma"])
 
     def _reward_tracking_ang_vel(self):
-        # Tracking of angular velocity commands (yaw)
+        """ Tracking of angular velocity commands (yaw)"""
         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
         return torch.exp(-ang_vel_error / self.reward_cfg["tracking_sigma"])
 
     def _reward_lin_vel_z(self):
-        # Penalize z axis base linear velocity
+        """ Penalize z axis base linear velocity"""
         return torch.square(self.base_lin_vel[:, 2])
 
 
     def _reward_action_rate(self):
-        # Penalize changes in actions
+        """ Penalize changes in actions"""
         return torch.sum(torch.square(self.last_actions - self.actions), dim=1)
 
     def _reward_similar_to_default(self):
-        # Penalize joint poses far away from default pose
+        """ Penalize joint poses far away from default pose"""
         return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1)
 
     def _reward_base_height(self):
-        # Penalize base height away from target
+        """Penalize base height away from target"""
         return torch.square(self.base_pos[:, 2] - self.reward_cfg["base_height_target"])
 
     def _reward_alive(self):
@@ -526,7 +495,7 @@ class H1_2Env:
         return alive
 
     def _reward_gait_contact(self):
-        #Récompenser le contact du pied avec le sol quand il est censé être en phase d'appui 
+        """Récompenser le contact du pied avec le sol quand il est censé être en phase d'appui""" 
         res = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         for i in range(self.feet_num):
             is_stance = self.leg_phase[:, i] < 0.55
@@ -535,7 +504,7 @@ class H1_2Env:
         return res
 
     def _reward_gait_swing(self):
-        #Récompenser le non-contact du pied pendant la phase de swing (quand il doit être en l’air).
+        """Récompenser le non-contact du pied pendant la phase de swing """
         res = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         for i in range(self.feet_num):
             is_swing = self.leg_phase[:, i] >= 0.55
@@ -544,7 +513,7 @@ class H1_2Env:
         return res
     
     def _reward_feet_swing_height(self):
-        #Récompenser une hauteur précise des pieds pendant qu’ils sont en l’air
+        """Récompenser une hauteur précise des pieds pendant qu’ils sont en l’air"""
         contact = torch.norm(self.contact_forces[:, self.feet_indices, :3],
                              dim=2) > 1.0
         pos_error = torch.square(self.feet_pos[:, :, 2] - self.reward_cfg[
@@ -552,7 +521,7 @@ class H1_2Env:
         return torch.sum(pos_error, dim=(1))
 
     def _reward_contact_no_vel(self):
-        #Pied ne glisse pas pendant le contact
+        """Pied ne glisse pas pendant le contact"""
         contact = torch.norm(self.contact_forces[:, self.feet_indices, :3],
                              dim=2) > 1.
         contact_feet_vel = self.feet_vel * contact.unsqueeze(-1)
@@ -576,20 +545,38 @@ class H1_2Env:
         for i in range(0, self.feet_num, 2): 
             j = i + 1
             in_swing = swing_mask[:, i] & swing_mask[:, j] 
-        # Horizontal (x-y) distance between foot pair
             foot_delta = feet_pos[:, i, :2] - feet_pos[:, j, :2]  
             step_dist = torch.norm(foot_delta, dim=1)  
             res += step_dist * in_swing  
         return res
 
     def _reward_ang_vel_xy(self):
-        #penalise xy axes base vel
+        """penalise xy axes base vel"""
         return torch.sum(torch.square(self.base_ang_vel[:, :2]), dim=1)
     
     def _reward_dof_vel(self):
-        #penalize dof acc
+        """penalize dof acc"""
         return torch.sum(torch.square(self.dof_vel), dim=1)
 
     def _reward_orientation(self):
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
+
+    def _reward_arm_movement(self):
+        """Pénalise les mouvements inutiles ou excessifs des bras"""
+        # Index des articulations des bras
+        arm_indices = self.arm_joint_indices
+        # 1. Vitesse angulaire élevée => mouvement brusque
+        arm_vel_penalty = torch.sum(torch.square(self.dof_vel[:, arm_indices]), dim=1)
+        # 2. Éloignement d'une position naturelle au repos
+        default_arm_pos = torch.zeros(len(arm_indices), device=self.device)
+        arm_pos_error = torch.sum(torch.abs(self.dof_pos[:, arm_indices] - default_arm_pos), dim=1)
+        # Pondération des composantes
+        total_penalty = (
+            0.1 * arm_vel_penalty +
+            0.3 * arm_pos_error )
+        return -total_penalty
+
+    def _reward_collision(self):
+        """ Penalize collisions on selected bodies"""
+        return torch.sum(1.*(torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1), dim=1)
     
