@@ -48,7 +48,7 @@ Notes:
 
 #####################################
 
-URDF/MJCF files of  Unitree H1_2 qre from this repo :
+URDF/MJCF files of  Unitree H1_2 are from this repo :
 https://github.com/unitreerobotics/unitree_rl_gym/tree/main/resources/robots/h1_2
 
    
