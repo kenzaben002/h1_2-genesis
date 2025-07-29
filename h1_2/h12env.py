@@ -325,7 +325,7 @@ class H1_2Env:
              #print(f"[{name}] reward per env: {rew}")
 
 
-        # compute observations // ce qui envoyer au robot 
+        # compute observations 
         self.obs_buf = torch.cat(
             [
                 self.base_ang_vel * self.obs_scales["ang_vel"], 
